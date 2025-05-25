@@ -6,12 +6,12 @@ intents = discord.Intents.default()
 intents.message_content = True  # Required for reading message content
 
 class MyBot(commands.Bot):
-  async def setup_hook(self):
-    # Sync commands here, before on_ready is called
-    synced = await self.tree.sync()
-    print(f"Synced {len(synced)} commands")
-    await self.tree.sync(guild=discord.Object(id=1374118081009553509)) # update commands in nyabyte
-    print("Synced commands with guild")
+    async def setup_hook(self):
+        # Sync commands here, before on_ready is called
+        synced = await self.tree.sync()
+        print(f"Synced {len(synced)} commands")
+        await self.tree.sync(guild=discord.Object(id=1374118081009553509)) # update commands in nyabyte
+        print("Synced commands with guild")
 
 bot = MyBot(command_prefix="!", intents=intents)
 
@@ -19,14 +19,12 @@ bot = MyBot(command_prefix="!", intents=intents)
 
 # update status
 def update_status(bot, statusId):
-  if statusId == 1:
-    return discord.Activity(
-      name="over NyaByte",
-      type=discord.ActivityType.watching
-    )
-  return discord.Game(
-    name="Invalid status ID"
-  )
+    if statusId == 1:
+        return discord.Activity(
+            name="over NyaByte",
+            type=discord.ActivityType.watching
+        )
+    return discord.Game(name="Invalid status ID")
 
 async def handle_horny_points(message, user_id, points):
     # Check if the user is already in the database
@@ -61,55 +59,62 @@ async def handle_horny_points(message, user_id, points):
 
 async def horny_filter(message, manual=False):
     filter_words = open("filter_words.txt").read().splitlines()
-    if any(word in message.content.lower() for word in filter_words) or manual:
-        # check if word is not a part of another word
-        if not manual:
-            for word in filter_words:
-                if word in message.content.lower():
-                    # check if the word is not part of another word
-                    if message.content.lower().count(word) == 1:
-                        # check if the word is not part of another word
-                        if message.content.lower().index(word) == 0 or message.content.lower()[message.content.lower().index(word) - 1] == " ":
-                            break
-            else:
-                return
-        await message.delete()
-        # send a fancy embed
-        embed = discord.Embed(
-            title="Filtered word detected!",
-            description=f"{message.author.display_name}, your message was deleted because it contained a filtered word.\nPlease refrain from using this word again in the future.\nFor more information, please look at the spoilered words in the message below.",
-            color=discord.Color.red()
-        )
-        embed.set_author(name=message.author.display_name, icon_url=message.author.avatar.url)
-        # generate the original message but with filtered words in a spoiler
-        filtered_message = message.content
-        if not manual:
-            for word in filter_words:
-                filtered_message = filtered_message.replace(word, f"||{word}||")
-        else:
-            filtered_message = "||" + filtered_message + "||"
-        embed.add_field(name="Original message", value=filtered_message, inline=False)
-        if manual:
-            embed.set_footer(text="This action was performed manually.")
-        else:
-            embed.set_footer(text="This action was performed automatically.")
-        await message.channel.send(message.author.mention, embed=embed, delete_after=10)
-        # add point to horny point db
-        infraction_count = 0
-        # count amount of banned words
+    if not (any(word in message.content.lower() for word in filter_words) or manual):
+        return
+    
+    # check if word is not a part of another word
+    if manual:
+        pass
+    else:
         for word in filter_words:
-            infraction_count += message.content.lower().count(word)
-            # check if the word is not part of another word
-            if message.content.lower().count(word) == 1:
+            if not word in message.content.lower():
                 # check if the word is not part of another word
-                if message.content.lower().index(word) == 0 or message.content.lower()[message.content.lower().index(word) - 1] == " ":
-                    break
+                break
+            if not message.content.lower().count(word) == 1:
+                break
+            # check if the word is not part of another word
+            if message.content.lower().index(word) == 0 or message.content.lower()[message.content.lower().index(word) - 1] == " ":
+                break
             else:
                 return
-        
-        if manual:
-            infraction_count = 1
-        await handle_horny_points(message, message.author.id, infraction_count)
+    
+    await message.delete()
+    # send a fancy embed
+    embed = discord.Embed(
+        title="Filtered word detected!",
+        description=f"{message.author.display_name}, your message was deleted because it contained a filtered word.\nPlease refrain from using this word again in the future.\nFor more information, please look at the spoilered words in the message below.",
+        color=discord.Color.red()
+    )
+    embed.set_author(name=message.author.display_name, icon_url=message.author.avatar.url)
+    # generate the original message but with filtered words in a spoiler
+    filtered_message = message.content
+    if not manual:
+        for word in filter_words:
+            filtered_message = filtered_message.replace(word, f"||{word}||")
+    else:
+        filtered_message = "||" + filtered_message + "||"
+    embed.add_field(name="Original message", value=filtered_message, inline=False)
+    if manual:
+        embed.set_footer(text="This action was performed manually.")
+    else:
+        embed.set_footer(text="This action was performed automatically.")
+    await message.channel.send(message.author.mention, embed=embed, delete_after=10)
+    # add point to horny point db
+    infraction_count = 0
+    # count amount of banned words
+    for word in filter_words:
+        infraction_count += message.content.lower().count(word)
+        # check if the word is not part of another word
+        if message.content.lower().count(word) == 1:
+            # check if the word is not part of another word
+            if message.content.lower().index(word) == 0 or message.content.lower()[message.content.lower().index(word) - 1] == " ":
+                break
+        else:
+            return
+    
+    if manual:
+        infraction_count = 1
+    await handle_horny_points(message, message.author.id, infraction_count)
 
 @bot.event
 async def on_ready():
